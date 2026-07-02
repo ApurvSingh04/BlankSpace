@@ -8,8 +8,33 @@ const app = new Hono<{
     Bindings: {
         DATABASE_URL : string
         JWT_SECRET : string
+    },
+    Variables: {
+        userId: string
     }
 }>()
+
+app.use('/api/v1/blog/*', async(c, next) =>{
+  const header : string = c.req.header('Authorization') || "";
+  const token = header.split(" ")[1];
+
+  if(!token){
+    return c.redirect('/api/v1/signin');
+  }
+
+  try {
+    const response = await verify(token, c.env.JWT_SECRET, "HS256");
+    if(response.id){
+      c.set('userId', response.id as string);
+      await next();
+    } else {
+      c.status(403);
+      return c.json({ error: "unauthorized request" });
+    }
+  } catch(e) {
+    return c.redirect('/api/v1/signin');
+  }
+})
 
 app.post('/api/v1/signup', async (c) => {
   const prisma = new PrismaClient({
