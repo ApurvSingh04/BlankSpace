@@ -8,6 +8,8 @@ import { Publish } from '../pages/Publish';
 import { Edit } from '../pages/Edit';
 import { ProtectedRoute } from './ProtectedRoute';
 
+import { Profile } from '../pages/Profile';
+
 export const AppRoutes = () => {
     return (
         <BrowserRouter>
@@ -22,6 +24,7 @@ export const AppRoutes = () => {
                     <Route path="/blogs" element={<Blogs />} />
                     <Route path="/bookmarks" element={<Bookmarks />} />
                     <Route path="/blog/:id" element={<Blog />} />
+                    <Route path="/profile/:id" element={<Profile />} />
                     <Route path="/edit/:id" element={<Edit />} />
                     <Route path="/publish" element={<Publish />} />
                     <Route path="/post" element={<Navigate to="/publish" replace />} />

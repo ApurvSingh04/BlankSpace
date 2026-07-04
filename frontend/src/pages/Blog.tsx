@@ -74,6 +74,8 @@ export const Blog = () => {
                     <ArticleHeader 
                         title={blog.title} 
                         authorName={blog.author.name || "Anonymous"} 
+                        authorId={blog.authorId}
+                        publishDate={blog.createdAt}
                         content={blog.content} 
                     />
                     <ArticleContent content={blog.content} />

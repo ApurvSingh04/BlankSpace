@@ -10,7 +10,7 @@ interface ProfileDropdownProps {
 export const ProfileDropdown = ({ size = "large" }: ProfileDropdownProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const { name, email, logout } = useUserStore();
+    const { id, name, email, logout } = useUserStore();
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -50,13 +50,17 @@ export const ProfileDropdown = ({ size = "large" }: ProfileDropdownProps) => {
                                 <span className="text-[15px] font-medium text-gray-900 truncate">
                                     {name || "Anonymous"}
                                 </span>
-                                <Link 
-                                    to="#" 
-                                    onClick={handleFallbackClick}
-                                    className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-                                >
-                                    View profile
-                                </Link>
+                                {id ? (
+                                    <Link 
+                                        to={`/profile/${id}`} 
+                                        onClick={() => setIsOpen(false)}
+                                        className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                                    >
+                                        View profile
+                                    </Link>
+                                ) : (
+                                    <span className="text-sm text-gray-500">Not logged in</span>
+                                )}
                             </div>
                         </div>
                     </div>

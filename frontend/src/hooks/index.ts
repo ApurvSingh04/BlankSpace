@@ -6,6 +6,7 @@ export interface Blog {
     title: string;
     content: string;
     authorId: string;
+    createdAt?: string;
     author: {
         name: string;
     };
@@ -68,7 +69,8 @@ export const usePublishBlog = () => {
         try {
             const response = await api.post("/blog", {
                 title,
-                content
+                content,
+                published: true
             });
             setLoading(false);
             return { success: true, id: response.data.id };
@@ -154,4 +156,71 @@ export const useBookmarks = () => {
     }, []);
 
     return { loading, blogs };
+}
+
+export interface Profile {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+    isFollowing: boolean;
+    _count: {
+        followers: number;
+        following: number;
+        posts: number;
+    };
+    posts: Blog[];
+}
+
+export const useProfile = (userId: string) => {
+    const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState<Profile | null>(null);
+
+    useEffect(() => {
+        if (!userId || userId === "undefined") return;
+        setLoading(true);
+        api.get(`/profile/${userId}`)
+            .then(response => {
+                setProfile(response.data);
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error("Error fetching profile:", error);
+                setLoading(false);
+            });
+    }, [userId]);
+
+    return { loading, profile, setProfile };
+}
+
+export interface FollowUser {
+    id: string;
+    name: string;
+    email: string;
+    isFollowing: boolean;
+}
+
+export const useFollowData = (userId: string, type: "followers" | "following" | null) => {
+    const [loading, setLoading] = useState(false);
+    const [users, setUsers] = useState<FollowUser[]>([]);
+
+    useEffect(() => {
+        if (!userId || !type) {
+            setUsers([]);
+            return;
+        }
+        setLoading(true);
+        api.get(`/profile/${userId}/${type}`)
+            .then(response => {
+                setUsers(response.data.users || []);
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error(`Error fetching ${type}:`, error);
+                setLoading(false);
+                setUsers([]);
+            });
+    }, [userId, type]);
+
+    return { loading, users, setUsers };
 }
