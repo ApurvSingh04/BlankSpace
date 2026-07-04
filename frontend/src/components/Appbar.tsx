@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Avatar } from "./BlogCard";
+import { ProfileDropdown } from "./ui/ProfileDropdown";
 
 export const Appbar = () => {
     return (
@@ -17,9 +17,7 @@ export const Appbar = () => {
                         Write
                     </button>
                 </Link>
-                <div className="cursor-pointer">
-                    <Avatar size="large" name="Apurv" />
-                </div>
+                <ProfileDropdown size="large" />
             </div>
         </div>
     );

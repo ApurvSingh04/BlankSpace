@@ -41,7 +41,7 @@ userRouter.post('/signup', async (c) => {
 
         const token = await sign({ id: user.id }, c.env.JWT_SECRET);
 
-        return c.json({ jwt: token });
+        return c.json({ jwt: token, name: user.name, email: user.email, id: user.id });
     } catch (e: any) {
         c.status(500);
         return c.json({ message: "Internal server error" });
@@ -77,7 +77,7 @@ userRouter.post('/signin', async (c) => {
         }
 
         const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
-        return c.json({ jwt });
+        return c.json({ jwt, name: user.name, email: user.email, id: user.id });
     } catch (e: any) {
         c.status(500);
         return c.json({ message: "Internal server error" });

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "../config";
 import { type SignupInput, type SigninInput } from "@apurva-dev/blog-common";
 import axios from "axios";
+import { useUserStore } from "../store/useUserStore";
 
 
 export const Auth = ({ type }: { type: "signup" | "signin" }) => {
@@ -39,6 +40,9 @@ function AuthHeader({ type }: { type: "signup" | "signin" }) {
 
 function AuthForm({ type }: { type: "signup" | "signin" }) {
     const navigate = useNavigate();
+    const setName = useUserStore((state) => state.setName);
+    const setId = useUserStore((state) => state.setId);
+    const setEmail = useUserStore((state) => state.setEmail);
     const [postInputs, setPostInputs] = useState<SignupInput | SigninInput>(
         type === "signup" 
             ? { name: "", email: "", password: "" } 
@@ -47,16 +51,23 @@ function AuthForm({ type }: { type: "signup" | "signin" }) {
 
     async function sendRequest() {
         try{
-            const response = await axios.post(`${BACKEND_URL}/user/signup`, postInputs);
-            const jwt = response.data.token;
+            const endpoint = type === "signup" ? "/user/signup" : "/user/signin";
+            const response = await axios.post(`${BACKEND_URL}${endpoint}`, postInputs);
+            const jwt = response.data.jwt;
+            const name = response.data.name;
+            const id = response.data.id;
+            const email = response.data.email;
             localStorage.setItem("token", jwt);
+            if (name) setName(name);
+            if (id) setId(id);
+            if (email) setEmail(email);
             navigate("/blogs");
         }
         catch(e){
             if(axios.isAxiosError(e)){
-                alert(e.response?.data.message)
+                alert(e.response?.data.message || "Error processing request")
             } else {
-                alert("Error while signing up. Please try again.")
+                alert("Error while processing request. Please try again.")
             }
         }
     }
