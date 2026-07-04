@@ -9,6 +9,12 @@ export interface Blog {
     author: {
         name: string;
     };
+    _count?: {
+        likes: number;
+        comments: number;
+    };
+    likes?: { userId: string }[];
+    bookmarks?: { userId: string }[];
 }
 
 export const useBlogs = (page = 1, limit = 10) => {
@@ -97,4 +103,55 @@ export const useEditBlog = () => {
     }
 
     return { loading, update };
+}
+
+export interface Comment {
+    id: string;
+    content: string;
+    createdAt: string;
+    author: {
+        id: string;
+        name: string;
+    };
+}
+
+export const useComments = (blogId: string) => {
+    const [loading, setLoading] = useState(true);
+    const [comments, setComments] = useState<Comment[]>([]);
+
+    useEffect(() => {
+        if (!blogId) return;
+        setLoading(true);
+        api.get(`/blog/${blogId}/comments`)
+            .then(response => {
+                setComments(response.data.comments);
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error("Error fetching comments:", error);
+                setLoading(false);
+            });
+    }, [blogId]);
+
+    return { loading, comments, setComments };
+}
+
+export const useBookmarks = () => {
+    const [loading, setLoading] = useState(true);
+    const [blogs, setBlogs] = useState<Blog[]>([]);
+
+    useEffect(() => {
+        setLoading(true);
+        api.get('/blog/bookmarks')
+            .then(response => {
+                setBlogs(response.data.posts);
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error("Error fetching bookmarks:", error);
+                setLoading(false);
+            });
+    }, []);
+
+    return { loading, blogs };
 }

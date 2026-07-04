@@ -4,14 +4,23 @@ import { Appbar } from "../components/Appbar";
 import { ArticleHeader } from "../components/article/ArticleHeader";
 import { ArticleContent } from "../components/article/ArticleContent";
 import { ArticleActions } from "../components/article/ArticleActions";
+import { CommentsSection } from "../components/article/CommentsSection";
 import { ReadingProgressBar } from "../components/layout/ReadingProgressBar";
 import { Footer } from "../components/layout/Footer";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
+import { useState, useEffect } from "react";
 
 export const Blog = () => {
     const { id } = useParams();
     const { loading, blog } = useBlog({ id: id || "" });
+    const [commentsCount, setCommentsCount] = useState(0);
+
+    useEffect(() => {
+        if (blog) {
+            setCommentsCount(blog._count?.comments || 0);
+        }
+    }, [blog]);
 
     if (loading) {
         return (
@@ -45,6 +54,17 @@ export const Blog = () => {
         );
     }
 
+    const handleCommentClick = () => {
+        const el = document.getElementById("comments-section");
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+            const textarea = el.querySelector("textarea");
+            if (textarea) {
+                setTimeout(() => textarea.focus(), 500); // Wait for scroll
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen flex flex-col bg-white">
             <ReadingProgressBar />
@@ -57,7 +77,19 @@ export const Blog = () => {
                         content={blog.content} 
                     />
                     <ArticleContent content={blog.content} />
-                    <ArticleActions blogId={blog.id} authorId={blog.authorId} />
+                    <ArticleActions 
+                        blogId={blog.id} 
+                        authorId={blog.authorId} 
+                        initialLikes={blog._count?.likes || 0}
+                        initialComments={commentsCount}
+                        initialIsLiked={Array.isArray(blog.likes) && blog.likes.length > 0}
+                        initialIsBookmarked={Array.isArray(blog.bookmarks) && blog.bookmarks.length > 0}
+                        onCommentClick={handleCommentClick}
+                    />
+                    <CommentsSection 
+                        blogId={blog.id} 
+                        onCommentAdded={() => setCommentsCount(prev => prev + 1)}
+                    />
                 </article>
             </main>
             <Footer />

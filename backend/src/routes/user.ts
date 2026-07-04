@@ -43,6 +43,10 @@ userRouter.post('/signup', async (c) => {
 
         return c.json({ jwt: token, name: user.name, email: user.email, id: user.id });
     } catch (e: any) {
+        if (e.code === 'P2002') {
+            c.status(403);
+            return c.json({ message: "Email already exists" });
+        }
         c.status(500);
         return c.json({ message: "Internal server error" });
     }

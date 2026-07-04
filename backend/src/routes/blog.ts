@@ -2,8 +2,7 @@ import { Hono } from "hono";
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { verify } from 'hono/jwt'
-import { createBlogInput } from '@apurva-dev/blog-common'
-import { updateBlogInput } from '@apurva-dev/blog-common'
+import { createBlogInput, updateBlogInput, createCommentInput } from '@apurva-dev/blog-common'
 
 
 export const blogRouter = new Hono<{
@@ -59,7 +58,7 @@ blogRouter.post('/', async (c) => {
             data: {
                 title: body.title,
                 content: body.content,
-                published: true,
+                published: body.published ?? false,
                 authorId: c.get("userId")
             }
         });
@@ -108,7 +107,7 @@ blogRouter.put('/', async (c) => {
             data: {
                 title: body.title,
                 content: body.content,
-                published: body.published ?? true
+                published: body.published
             }
         });
 
@@ -139,10 +138,27 @@ blogRouter.get('/bulk', async (c) => {
                     title: true,
                     content: true,
                     authorId: true,
+                    createdAt: true,
                     author: {
                         select: {
                             name: true,
                             email: true
+                        }
+                    },
+                    _count: {
+                        select: {
+                            likes: true,
+                            comments: true
+                        }
+                    },
+                    likes: {
+                        where: {
+                            userId: c.get("userId")
+                        }
+                    },
+                    bookmarks: {
+                        where: {
+                            userId: c.get("userId")
                         }
                     }
                 }
@@ -165,6 +181,54 @@ blogRouter.get('/bulk', async (c) => {
     }
 });
 
+blogRouter.get('/bookmarks', async (c) => {
+    const userId = c.get("userId");
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const bookmarks = await prisma.bookmark.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                post: {
+                    select: {
+                        id: true,
+                        title: true,
+                        content: true,
+                        authorId: true,
+                        createdAt: true,
+                        author: {
+                            select: {
+                                name: true,
+                                email: true
+                            }
+                        },
+                        _count: {
+                            select: {
+                                likes: true,
+                                comments: true
+                            }
+                        },
+                        likes: {
+                            where: { userId }
+                        },
+                        bookmarks: {
+                            where: { userId }
+                        }
+                    }
+                }
+            }
+        });
+
+        const posts = bookmarks.map((b: any) => b.post);
+        return c.json({ posts });
+    } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal server error" });
+    }
+});
 
 blogRouter.get('/:id', async (c) => {
     const id = c.req.param('id');
@@ -181,10 +245,27 @@ blogRouter.get('/:id', async (c) => {
                 title: true,
                 content: true,
                 authorId: true,
+                createdAt: true,
                 author: {
                     select: {
                         name: true,
                         email: true
+                    }
+                },
+                _count: {
+                    select: {
+                        likes: true,
+                        comments: true
+                    }
+                },
+                likes: {
+                    where: {
+                        userId: c.get("userId")
+                    }
+                },
+                bookmarks: {
+                    where: {
+                        userId: c.get("userId")
                     }
                 }
             }
@@ -196,6 +277,132 @@ blogRouter.get('/:id', async (c) => {
         }
 
         return c.json({ post });
+    } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal server error" });
+    }
+});
+
+blogRouter.post('/:id/like', async (c) => {
+    const postId = c.req.param('id');
+    const userId = c.get("userId");
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const existingLike = await prisma.like.findUnique({
+            where: {
+                userId_postId: {
+                    userId,
+                    postId
+                }
+            }
+        });
+
+        if (existingLike) {
+            await prisma.like.delete({
+                where: { id: existingLike.id }
+            });
+            return c.json({ message: "Unliked", liked: false });
+        } else {
+            await prisma.like.create({
+                data: { userId, postId }
+            });
+            return c.json({ message: "Liked", liked: true });
+        }
+    } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal server error" });
+    }
+});
+
+blogRouter.post('/:id/bookmark', async (c) => {
+    const postId = c.req.param('id');
+    const userId = c.get("userId");
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const existingBookmark = await prisma.bookmark.findUnique({
+            where: {
+                userId_postId: {
+                    userId,
+                    postId
+                }
+            }
+        });
+
+        if (existingBookmark) {
+            await prisma.bookmark.delete({
+                where: { id: existingBookmark.id }
+            });
+            return c.json({ message: "Bookmark removed", bookmarked: false });
+        } else {
+            await prisma.bookmark.create({
+                data: { userId, postId }
+            });
+            return c.json({ message: "Bookmarked", bookmarked: true });
+        }
+    } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal server error" });
+    }
+});
+
+blogRouter.post('/:id/comment', async (c) => {
+    const postId = c.req.param('id');
+    const userId = c.get("userId");
+    const body = await c.req.json();
+    
+    const success = createCommentInput.safeParse(body);
+    if (!success.success) {
+        c.status(400);
+        return c.json({ message: "Invalid input" });
+    }
+
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const comment = await prisma.comment.create({
+            data: {
+                content: body.content,
+                authorId: userId,
+                postId
+            },
+            include: {
+                author: {
+                    select: { name: true }
+                }
+            }
+        });
+        return c.json({ comment });
+    } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal server error" });
+    }
+});
+
+blogRouter.get('/:id/comments', async (c) => {
+    const postId = c.req.param('id');
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    try {
+        const comments = await prisma.comment.findMany({
+            where: { postId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                author: {
+                    select: { name: true, id: true }
+                }
+            }
+        });
+        return c.json({ comments });
     } catch (e) {
         c.status(500);
         return c.json({ message: "Internal server error" });
