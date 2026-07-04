@@ -84,6 +84,19 @@ export const ArticleActions = ({
         }
     };
 
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleShare = async () => {
+        try {
+            const url = `${window.location.origin}/blog/${blogId}`;
+            await navigator.clipboard.writeText(url);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy link:", err);
+        }
+    };
+
     return (
         <div className="border-t border-b border-gray-100 py-4 my-8 flex items-center justify-between text-gray-500">
             <div className="flex items-center gap-6">
@@ -105,7 +118,7 @@ export const ArticleActions = ({
                     <span className="text-sm">{initialComments > 0 ? initialComments : ''}</span>
                 </button>
             </div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 relative">
                 {isAuthor && (
                     <Link to={`/edit/${blogId}`} title="Edit Article" className="hover:text-gray-900 transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -114,9 +127,16 @@ export const ArticleActions = ({
                 <button onClick={handleBookmark} disabled={isBookmarking} title="Bookmark" className={`hover:text-gray-900 transition-colors ${isBookmarked ? 'text-gray-900' : ''}`}>
                     <svg className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
                 </button>
-                <button title="More options" className="hover:text-gray-900 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                </button>
+                <div className="relative flex items-center">
+                    <button onClick={handleShare} title="Share" className="hover:text-gray-900 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                    </button>
+                    {isCopied && (
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow whitespace-nowrap">
+                            Link copied!
+                        </span>
+                    )}
+                </div>
             </div>
         </div>
     );
