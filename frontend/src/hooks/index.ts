@@ -40,15 +40,23 @@ export const useBlogs = (page = 1, limit = 10) => {
     return { loading, blogs, total };
 }
 
+export const blogCache: Record<string, Blog> = {};
+
 export const useBlog = ({ id }: { id: string }) => {
-    const [loading, setLoading] = useState(true);
-    const [blog, setBlog] = useState<Blog | null>(null);
+    const [loading, setLoading] = useState(!blogCache[id]);
+    const [blog, setBlog] = useState<Blog | null>(blogCache[id] || null);
 
     useEffect(() => {
         if (!id) return;
+        if (blogCache[id]) {
+            setBlog(blogCache[id]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         api.get(`/blog/${id}`)
             .then(response => {
+                blogCache[id] = response.data.post;
                 setBlog(response.data.post);
                 setLoading(false);
             })
@@ -95,6 +103,7 @@ export const useEditBlog = () => {
                 title,
                 content
             });
+            delete blogCache[id];
             setLoading(false);
             return { success: true, id: response.data.id };
         } catch (error) {
